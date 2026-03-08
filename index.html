@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>출석 체크</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        text-align: center;
+        padding: 50px 20px;
+      }
+      input {
+        padding: 10px;
+        font-size: 16px;
+        margin-bottom: 15px;
+        width: 80%;
+        max-width: 300px;
+      }
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #4caf50;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+      #message {
+        margin-top: 20px;
+        font-weight: bold;
+        color: #333;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>출석 체크</h2>
+
+    <div id="formSection">
+      <input type="text" id="nameInput" placeholder="이름을 입력하세요" />
+      <br />
+      <button onclick="submitAttendance()" id="submitBtn">출석</button>
+    </div>
+
+    <div id="message"></div>
+
+    <script>
+      // ⚠️ 1단계에서 배포한 앱스 스크립트 웹 앱 URL을 아래에 정확히 붙여넣으세요.
+      const SCRIPT_URL = "여기에_앱스스크립트_URL_입력";
+
+      window.onload = function () {
+        const savedName = localStorage.getItem("myAttendanceName");
+        if (savedName) {
+          document.getElementById("nameInput").value = savedName;
+        }
+      };
+
+      function submitAttendance() {
+        const name = document.getElementById("nameInput").value.trim();
+
+        if (!name) {
+          alert("이름을 입력해주세요.");
+          return;
+        }
+
+        document.getElementById("message").innerText = "기록 중입니다...";
+        document.getElementById("submitBtn").disabled = true;
+
+        localStorage.setItem("myAttendanceName", name);
+
+        // fetch API를 사용해 백엔드(구글 시트)로 GET 요청 전송
+        fetch(SCRIPT_URL + "?name=" + encodeURIComponent(name))
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.status === "success") {
+              document.getElementById("formSection").style.display = "none";
+              document.getElementById("message").innerText =
+                name + "님, 출석이 완료되었습니다!";
+            } else {
+              throw new Error(data.message);
+            }
+          })
+          .catch((error) => {
+            document.getElementById("message").innerText =
+              "오류가 발생했습니다: " + error.message;
+            document.getElementById("submitBtn").disabled = false;
+          });
+      }
+    </script>
+  </body>
+</html>
