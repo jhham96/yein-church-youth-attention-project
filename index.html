@@ -68,22 +68,26 @@
 
         localStorage.setItem("myAttendanceName", name);
 
-        // fetch API를 사용해 백엔드(구글 시트)로 GET 요청 전송
-        fetch(SCRIPT_URL + "?name=" + encodeURIComponent(name))
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.status === "success") {
-              document.getElementById("formSection").style.display = "none";
-              document.getElementById("message").innerText =
-                name + "님, 출석이 완료되었습니다!";
+        // (기존) fetch API를 사용해 백엔드(구글 시트)로 GET 요청 전송
+        fetch(SCRIPT_URL + '?name=' + encodeURIComponent(name))
+          .then(response => response.json())
+          .then(data => {
+            if(data.status === "success") {
+              document.getElementById('formSection').style.display = 'none';
+              document.getElementById('message').innerText = name + "님, 출석이 완료되었습니다!";
+              document.getElementById('message').style.color = "#4CAF50"; // 성공 시 초록색 텍스트
+            } else if(data.status === "duplicate") {
+              // 중복 출석인 경우 처리
+              document.getElementById('formSection').style.display = 'none';
+              document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다. (중복 방지)";
+              document.getElementById('message').style.color = "#ff9800"; // 중복 시 주황색 텍스트
             } else {
               throw new Error(data.message);
             }
           })
-          .catch((error) => {
-            document.getElementById("message").innerText =
-              "오류가 발생했습니다: " + error.message;
-            document.getElementById("submitBtn").disabled = false;
+          .catch(error => {
+            document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
+            document.getElementById('submitBtn').disabled = false;
           });
       }
     </script>
