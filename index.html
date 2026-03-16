@@ -1,95 +1,133 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>출석 체크</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        text-align: center;
-        padding: 50px 20px;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>출석 체크</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 50px 20px; }
+    input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 80%; max-width: 300px; }
+    button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <h2>출석 체크</h2>
+  
+  <div id="formSection">
+    <input type="text" id="nameInput" placeholder="이름을 입력하세요">
+    <br>
+    <button onclick="checkLocationAndSubmit()" id="submitBtn">출석</button>
+  </div>
+  
+  <div id="message"></div>
+
+  <script>
+    // ⚠️ 1. 앱스 스크립트 URL 입력
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwtT5z_4MHA6KMXhAPPmddUw-OAsOsd9rriMZ-iOW8_MUY0O5dR4baUZoq6d0823Gu6Sw/exec';
+
+    // ⚠️ 2. 모임 장소의 위도(Latitude)와 경도(Longitude) 입력
+    const TARGET_LAT = 37.563493; // 예시: 우리집 위도
+    const TARGET_LON = 127.055807; // 예시: 우리집 경도
+    const MAX_DISTANCE = 100; // 허용 반경 (미터 단위)
+
+    // 고유 기기 ID 생성 및 불러오기 (대리 출석 방지용)
+    let deviceId = localStorage.getItem('myDeviceId');
+    if (!deviceId) {
+      deviceId = 'DEV_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
+      localStorage.setItem('myDeviceId', deviceId);
+    }
+    const deviceInfo = navigator.userAgent; // 브라우저 및 기기 종류
+
+    window.onload = function() {
+      const savedName = localStorage.getItem('myAttendanceName');
+      if (savedName) {
+        document.getElementById('nameInput').value = savedName;
       }
-      input {
-        padding: 10px;
-        font-size: 16px;
-        margin-bottom: 15px;
-        width: 80%;
-        max-width: 300px;
+    };
+
+    // 두 좌표 간의 거리를 미터(m) 단위로 계산하는 함수 (하버사인 공식)
+    function getDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371e3;
+      const p1 = lat1 * Math.PI/180;
+      const p2 = lat2 * Math.PI/180;
+      const dp = (lat2-lat1) * Math.PI/180;
+      const dl = (lon2-lon1) * Math.PI/180;
+      const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      return R * c;
+    }
+
+    function checkLocationAndSubmit() {
+      const name = document.getElementById('nameInput').value.trim();
+      
+      if (!name) {
+        alert("이름을 입력해주세요.");
+        return;
       }
-      button {
-        padding: 10px 20px;
-        font-size: 16px;
-        background-color: #4caf50;
-        color: white;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-      }
-      #message {
-        margin-top: 20px;
-        font-weight: bold;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <h2>출석 체크</h2>
 
-    <div id="formSection">
-      <input type="text" id="nameInput" placeholder="이름을 입력하세요" />
-      <br />
-      <button onclick="submitAttendance()" id="submitBtn">출석</button>
-    </div>
+      document.getElementById('message').innerText = "위치를 확인 중입니다... (GPS 권한을 허용해주세요)";
+      document.getElementById('submitBtn').disabled = true;
 
-    <div id="message"></div>
+      // HTML5 Geolocation API로 현재 위치 가져오기
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            const currentLat = position.coords.latitude;
+            const currentLon = position.coords.longitude;
+            const distance = getDistance(currentLat, currentLon, TARGET_LAT, TARGET_LON);
 
-    <script>
-      // ⚠️ 1단계에서 배포한 앱스 스크립트 웹 앱 URL을 아래에 정확히 붙여넣으세요.
-      const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyb4lwbF7PO_l25-n5Ofrei5BgH81ArZ2e6uMx2AUFrkBU5rrZYhsIbMJJfnr6vi1kuBw/exec";
-
-      window.onload = function () {
-        const savedName = localStorage.getItem("myAttendanceName");
-        if (savedName) {
-          document.getElementById("nameInput").value = savedName;
-        }
-      };
-
-      function submitAttendance() {
-        const name = document.getElementById("nameInput").value.trim();
-
-        if (!name) {
-          alert("이름을 입력해주세요.");
-          return;
-        }
-
-        document.getElementById("message").innerText = "기록 중입니다...";
-        document.getElementById("submitBtn").disabled = true;
-
-        localStorage.setItem("myAttendanceName", name);
-
-        // (기존) fetch API를 사용해 백엔드(구글 시트)로 GET 요청 전송
-        fetch(SCRIPT_URL + '?name=' + encodeURIComponent(name))
-          .then(response => response.json())
-          .then(data => {
-            if(data.status === "success") {
-              document.getElementById('formSection').style.display = 'none';
-              document.getElementById('message').innerText = name + "님, 출석이 완료되었습니다!";
-              document.getElementById('message').style.color = "#4CAF50"; // 성공 시 초록색 텍스트
-            } else if(data.status === "duplicate") {
-              // 중복 출석인 경우 처리
-              document.getElementById('formSection').style.display = 'none';
-              document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다. (중복 방지)";
-              document.getElementById('message').style.color = "#ff9800"; // 중복 시 주황색 텍스트
+            if (distance <= MAX_DISTANCE) {
+              // 100m 이내일 경우 출석 서버로 전송
+              document.getElementById('message').innerText = "위치 확인 완료! 기록 중입니다...";
+              sendAttendanceToServer(name);
             } else {
-              throw new Error(data.message);
+              // 100m를 벗어난 경우
+              document.getElementById('message').innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${MAX_DISTANCE}m)`;
+              document.getElementById('message').style.color = "#f44336";
+              document.getElementById('submitBtn').disabled = false;
             }
-          })
-          .catch(error => {
-            document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
+          },
+          function(error) {
+            document.getElementById('message').innerText = "위치 정보를 가져올 수 없습니다. 스마트폰의 GPS를 켜고, 브라우저의 위치 권한을 허용해주세요.";
+            document.getElementById('message').style.color = "#f44336";
             document.getElementById('submitBtn').disabled = false;
-          });
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        document.getElementById('message').innerText = "이 브라우저에서는 위치 기능을 지원하지 않습니다.";
       }
-    </script>
-  </body>
+    }
+
+    function sendAttendanceToServer(name) {
+      localStorage.setItem('myAttendanceName', name);
+
+      // 이름, 기기ID, 기기정보를 함께 파라미터로 전송
+      const urlParams = `?name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(deviceId)}&deviceInfo=${encodeURIComponent(deviceInfo)}`;
+      
+      fetch(SCRIPT_URL + urlParams)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('formSection').style.display = 'none';
+          if(data.status === "success") {
+            document.getElementById('message').innerText = name + "님, 출석이 완료되었습니다!";
+            document.getElementById('message').style.color = "#4CAF50";
+          } else if(data.status === "duplicate") {
+            document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다.";
+            document.getElementById('message').style.color = "#ff9800";
+          } else if(data.status === "proxy") {
+            document.getElementById('message').innerText = data.message;
+            document.getElementById('message').style.color = "#f44336";
+          } else {
+            throw new Error(data.message);
+          }
+        })
+        .catch(error => {
+          document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
+          document.getElementById('submitBtn').disabled = false;
+        });
+    }
+  </script>
+</body>
 </html>
