@@ -8,8 +8,10 @@
     body { font-family: sans-serif; text-align: center; padding: 50px 20px; }
     input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 80%; max-width: 300px; }
     button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; }
+    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; white-space: pre-line; }
   </style>
+  
+  <script src="config.js"></script>
 </head>
 <body>
   <h2>출석 체크</h2>
@@ -23,22 +25,29 @@
   <div id="message"></div>
 
   <script>
-    // ⚠️ 1. 앱스 스크립트 URL 입력
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwtT5z_4MHA6KMXhAPPmddUw-OAsOsd9rriMZ-iOW8_MUY0O5dR4baUZoq6d0823Gu6Sw/exec';
-
-    // ⚠️ 2. 모임 장소의 위도(Latitude)와 경도(Longitude) 입력
-    const TARGET_LAT = 37.568208; // 예시: 예인교회 위도
-    const TARGET_LON = 127.036794; // 예시: 예인교회 경도
-    const MAX_DISTANCE = 50; // 허용 반경 (미터 단위)
-
-    // 고유 기기 ID 생성 및 불러오기 (대리 출석 방지용)
-    let deviceId = localStorage.getItem('myDeviceId');
-    if (!deviceId) {
-      deviceId = 'DEV_' + new Date().getTime() + '_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('myDeviceId', deviceId);
-    }
     const deviceInfo = navigator.userAgent; // 브라우저 및 기기 종류
 
+    // 💡 브라우저 지문(Fingerprint) 생성 함수 (시크릿 모드 우회 방지용)
+    async function generateDeviceFingerprint() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl');
+      const renderer = gl ? gl.getParameter(gl.RENDERER) : ''; 
+      
+      const rawData = navigator.userAgent + 
+                      screen.width + 'x' + screen.height + 
+                      navigator.language + 
+                      navigator.hardwareConcurrency +
+                      renderer;
+
+      const msgBuffer = new TextEncoder().encode(rawData);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      return 'FP_' + hashHex.substring(0, 15);
+    }
+
+    // 페이지 로드 시 이름 자동 완성
     window.onload = function() {
       const savedName = localStorage.getItem('myAttendanceName');
       if (savedName) {
@@ -58,7 +67,8 @@
       return R * c;
     }
 
-    function checkLocationAndSubmit() {
+    // 출석 버튼 클릭 시 실행
+    async function checkLocationAndSubmit() {
       const name = document.getElementById('nameInput').value.trim();
       
       if (!name) {
@@ -66,30 +76,34 @@
         return;
       }
 
-      document.getElementById('message').innerText = "위치를 확인 중입니다... (GPS 권한을 허용해주세요)";
+      document.getElementById('message').innerText = "위치 및 기기 정보를 확인 중입니다...\n(GPS 권한을 허용해주세요)";
+      document.getElementById('message').style.color = "#333";
       document.getElementById('submitBtn').disabled = true;
 
-      // HTML5 Geolocation API로 현재 위치 가져오기
+      // 고유 기기 지문 실시간 생성
+      const deviceId = await generateDeviceFingerprint();
+
+      // GPS 위치 확인
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           function(position) {
             const currentLat = position.coords.latitude;
             const currentLon = position.coords.longitude;
-            const distance = getDistance(currentLat, currentLon, TARGET_LAT, TARGET_LON);
+            
+            // config.js 파일의 CONFIG 객체에서 목표 좌표와 거리를 가져옴
+            const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
 
-            if (distance <= MAX_DISTANCE) {
-              // 100m 이내일 경우 출석 서버로 전송
-              document.getElementById('message').innerText = "위치 확인 완료! 기록 중입니다...";
-              sendAttendanceToServer(name);
+            if (distance <= CONFIG.MAX_DISTANCE) {
+              document.getElementById('message').innerText = "확인 완료! 기록 중입니다...";
+              sendAttendanceToServer(name, deviceId);
             } else {
-              // 100m를 벗어난 경우
-              document.getElementById('message').innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${MAX_DISTANCE}m)`;
+              document.getElementById('message').innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)`;
               document.getElementById('message').style.color = "#f44336";
               document.getElementById('submitBtn').disabled = false;
             }
           },
           function(error) {
-            document.getElementById('message').innerText = "위치 정보를 가져올 수 없습니다. 스마트폰의 GPS를 켜고, 브라우저의 위치 권한을 허용해주세요.";
+            document.getElementById('message').innerText = "위치 권한을 허용해주세요.\n스마트폰의 GPS를 켜고 브라우저 설정에서 위치를 허용해야 합니다.";
             document.getElementById('message').style.color = "#f44336";
             document.getElementById('submitBtn').disabled = false;
           },
@@ -97,16 +111,19 @@
         );
       } else {
         document.getElementById('message').innerText = "이 브라우저에서는 위치 기능을 지원하지 않습니다.";
+        document.getElementById('message').style.color = "#f44336";
+        document.getElementById('submitBtn').disabled = false;
       }
     }
 
-    function sendAttendanceToServer(name) {
+    // 서버로 데이터 전송
+    function sendAttendanceToServer(name, deviceId) {
       localStorage.setItem('myAttendanceName', name);
 
-      // 이름, 기기ID, 기기정보를 함께 파라미터로 전송
+      // config.js 파일의 CONFIG.SCRIPT_URL을 사용
       const urlParams = `?name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(deviceId)}&deviceInfo=${encodeURIComponent(deviceInfo)}`;
       
-      fetch(SCRIPT_URL + urlParams)
+      fetch(CONFIG.SCRIPT_URL + urlParams)
         .then(response => response.json())
         .then(data => {
           document.getElementById('formSection').style.display = 'none';
@@ -117,7 +134,7 @@
             document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다.";
             document.getElementById('message').style.color = "#ff9800";
           } else if(data.status === "proxy") {
-            document.getElementById('message').innerText = data.message;
+            document.getElementById('message').innerText = "해당 기기로는 이미 다른 사람의 출석이 완료되었습니다.\n(대리출석 방지)";
             document.getElementById('message').style.color = "#f44336";
           } else {
             throw new Error(data.message);
@@ -125,6 +142,7 @@
         })
         .catch(error => {
           document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
+          document.getElementById('message').style.color = "#f44336";
           document.getElementById('submitBtn').disabled = false;
         });
     }
