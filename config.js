@@ -1,4 +1,11 @@
 // config.js
+
+const lat_lon_group = {
+  삼성본관: { lat: 37.562315, lon: 126.975602 },
+  예인교회: { lat: 37.568208, lon: 127.036794 },
+  // 다른 장소들도 추가 가능
+};
+
 const CONFIG = {
   // 1. 앱스 스크립트 웹 앱 URL
   SCRIPT_URL:
@@ -8,10 +15,4 @@ const CONFIG = {
   TARGET_LAT: lat_lon_group["삼성본관"].lat, // 위도
   TARGET_LON: lat_lon_group["삼성본관"].lon, // 경도
   MAX_DISTANCE: 50, // 허용 거리 (미터)
-};
-
-const lat_lon_group = {
-  삼성본관: { lat: 37.562315, lon: 126.975602 },
-  예인교회: { lat: 37.568208, lon: 127.036794 },
-  // 다른 장소들도 추가 가능
 };
