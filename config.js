@@ -12,7 +12,7 @@ const CONFIG = {
     "https://script.google.com/macros/s/AKfycbwtT5z_4MHA6KMXhAPPmddUw-OAsOsd9rriMZ-iOW8_MUY0O5dR4baUZoq6d0823Gu6Sw/exec",
 
   // 2. 모임 장소 설정 (위도, 경도, 허용 반경)
-  TARGET_LAT: lat_lon_group["삼성본관"].lat, // 위도
-  TARGET_LON: lat_lon_group["삼성본관"].lon, // 경도
+  TARGET_LAT: lat_lon_group["예인교회"].lat, // 위도
+  TARGET_LON: lat_lon_group["예인교회"].lon, // 경도
   MAX_DISTANCE: 50, // 허용 거리 (미터)
 };
