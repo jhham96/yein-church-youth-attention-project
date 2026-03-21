@@ -4,58 +4,155 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>출석 체크</title>
-  <style>
-    body { font-family: sans-serif; text-align: center; padding: 50px 20px; }
-    input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 80%; max-width: 300px; }
-    button { padding: 10px 20px; font-size: 16px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; white-space: pre-line; }
-  </style>
-  
   <script src="config.js"></script>
+  <style>
+    body { font-family: sans-serif; text-align: center; padding: 50px 20px; margin: 0; }
+    input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 80%; max-width: 300px; box-sizing: border-box; }
+    button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
+    
+    .btn-submit { background-color: #4CAF50; color: white; width: 80%; max-width: 300px; }
+    .btn-submit:disabled { background-color: #9E9E9E; cursor: not-allowed; }
+    
+    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; white-space: pre-line; }
+
+    /* 💡 커스텀 모달(팝업창) 디자인 & 애니메이션 */
+    #modalOverlay {
+      visibility: hidden; opacity: 0; 
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); z-index: 1000; 
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.3s ease, visibility 0.3s ease; /* 부드러운 페이드인 */
+    }
+    #modalOverlay.show { visibility: visible; opacity: 1; }
+    
+    #confirmBox {
+      background: white; padding: 30px 20px; border-radius: 12px; width: 80%; max-width: 300px;
+      transform: translateY(-20px) scale(0.95); transition: transform 0.3s ease; /* 톡 튀어나오는 효과 */
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    #modalOverlay.show #confirmBox { transform: translateY(0) scale(1); }
+
+    .btn-group { margin-top: 25px; display: flex; gap: 10px; justify-content: center; }
+    .btn-cancel { background-color: #e0e0e0; color: #333; flex: 1; }
+    .btn-confirm { background-color: #2196F3; color: white; flex: 1; }
+  </style>
 </head>
 <body>
   <h2>출석 체크</h2>
   
+  <p id="locationDisplay" style="color: #666; font-size: 14px; margin-bottom: 20px;"></p>
+  
   <div id="formSection">
     <input type="text" id="nameInput" placeholder="이름을 입력하세요">
     <br>
-    <button onclick="checkLocationAndSubmit()" id="submitBtn">출석</button>
+    <button class="btn-submit" onclick="showConfirmModal()" id="mainSubmitBtn">출석</button>
   </div>
   
   <div id="message"></div>
 
+  <div id="modalOverlay">
+    <div id="confirmBox">
+      <h3 style="margin-top:0; color:#333;">이름 확인</h3>
+      <p id="confirmMessage" style="font-size: 17px; color:#555; margin-bottom: 5px;"></p>
+      <div class="btn-group">
+        <button class="btn-cancel" onclick="closeModal()">다시 입력</button>
+        <button class="btn-confirm" onclick="proceedAttendance()">네, 맞습니다</button>
+      </div>
+    </div>
+  </div>
+
   <script>
-    const deviceInfo = navigator.userAgent; // 브라우저 및 기기 종류
+    const deviceInfo = navigator.userAgent;
 
-    // 💡 브라우저 지문(Fingerprint) 생성 함수 (시크릿 모드 우회 방지용)
-    async function generateDeviceFingerprint() {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl');
-      const renderer = gl ? gl.getParameter(gl.RENDERER) : ''; 
-      
-      const rawData = navigator.userAgent + 
-                      screen.width + 'x' + screen.height + 
-                      navigator.language + 
-                      navigator.hardwareConcurrency +
-                      renderer;
-
-      const msgBuffer = new TextEncoder().encode(rawData);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      return 'FP_' + hashHex.substring(0, 15);
-    }
-
-    // 페이지 로드 시 이름 자동 완성
     window.onload = function() {
+      // config.js의 설정값을 화면에 표시
+      if(typeof CONFIG !== 'undefined') {
+        document.getElementById('locationDisplay').innerText = `📍 출석 위치: ${CONFIG.TARGET_NAME} (반경 ${CONFIG.MAX_DISTANCE}m)`;
+      }
+
       const savedName = localStorage.getItem('myAttendanceName');
       if (savedName) {
         document.getElementById('nameInput').value = savedName;
       }
     };
 
-    // 두 좌표 간의 거리를 미터(m) 단위로 계산하는 함수 (하버사인 공식)
+    // --- 💡 새로 추가된 모달 제어 함수들 ---
+    function showConfirmModal() {
+      const name = document.getElementById('nameInput').value.trim();
+      if (!name) {
+        alert("이름을 입력해주세요.");
+        return;
+      }
+      // 입력한 이름을 모달창에 세팅
+      document.getElementById('confirmMessage').innerHTML = `<strong>${name}</strong> 님으로<br>출석하시겠습니까?`;
+      // 애니메이션 클래스 추가
+      document.getElementById('modalOverlay').classList.add('show');
+    }
+
+    function closeModal() {
+      // 모달창 닫기
+      document.getElementById('modalOverlay').classList.remove('show');
+    }
+
+    // 모달창에서 '네, 맞습니다'를 누르면 실행되는 실제 출석 로직
+    async function proceedAttendance() {
+      closeModal(); // 팝업 닫기
+      
+      const name = document.getElementById('nameInput').value.trim();
+      const mainBtn = document.getElementById('mainSubmitBtn');
+      const msgBox = document.getElementById('message');
+
+      msgBox.innerText = "위치 및 기기 정보를 확인 중입니다...\n(GPS 권한을 허용해주세요)";
+      msgBox.style.color = "#333";
+      mainBtn.disabled = true;
+
+      const deviceId = await generateDeviceFingerprint();
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          function(position) {
+            const currentLat = position.coords.latitude;
+            const currentLon = position.coords.longitude;
+            const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
+
+            if (distance <= CONFIG.MAX_DISTANCE) {
+              msgBox.innerText = "확인 완료! 기록 중입니다...";
+              sendAttendanceToServer(name, deviceId);
+            } else {
+              msgBox.innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)`;
+              msgBox.style.color = "#f44336";
+              mainBtn.disabled = false;
+            }
+          },
+          function(error) {
+            msgBox.innerText = "위치 권한을 허용해주세요.\n스마트폰의 GPS를 켜고 브라우저 설정에서 위치를 허용해야 합니다.";
+            msgBox.style.color = "#f44336";
+            mainBtn.disabled = false;
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        msgBox.innerText = "이 브라우저에서는 위치 기능을 지원하지 않습니다.";
+        msgBox.style.color = "#f44336";
+        mainBtn.disabled = false;
+      }
+    }
+
+    // 기기 지문 생성 함수
+    async function generateDeviceFingerprint() {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl');
+      const renderer = gl ? gl.getParameter(gl.RENDERER) : ''; 
+      
+      const rawData = navigator.userAgent + screen.width + 'x' + screen.height + navigator.language + navigator.hardwareConcurrency + renderer;
+      const msgBuffer = new TextEncoder().encode(rawData);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return 'FP_' + hashHex.substring(0, 15);
+    }
+
+    // 거리 계산 함수
     function getDistance(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
       const p1 = lat1 * Math.PI/180;
@@ -67,60 +164,10 @@
       return R * c;
     }
 
-    // 출석 버튼 클릭 시 실행
-    async function checkLocationAndSubmit() {
-      const name = document.getElementById('nameInput').value.trim();
-      
-      if (!name) {
-        alert("이름을 입력해주세요.");
-        return;
-      }
-
-      document.getElementById('message').innerText = "위치 및 기기 정보를 확인 중입니다...\n(GPS 권한을 허용해주세요)";
-      document.getElementById('message').style.color = "#333";
-      document.getElementById('submitBtn').disabled = true;
-
-      // 고유 기기 지문 실시간 생성
-      const deviceId = await generateDeviceFingerprint();
-
-      // GPS 위치 확인
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          function(position) {
-            const currentLat = position.coords.latitude;
-            const currentLon = position.coords.longitude;
-            
-            // config.js 파일의 CONFIG 객체에서 목표 좌표와 거리를 가져옴
-            const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
-
-            if (distance <= CONFIG.MAX_DISTANCE) {
-              document.getElementById('message').innerText = "확인 완료! 기록 중입니다...";
-              sendAttendanceToServer(name, deviceId);
-            } else {
-              document.getElementById('message').innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)`;
-              document.getElementById('message').style.color = "#f44336";
-              document.getElementById('submitBtn').disabled = false;
-            }
-          },
-          function(error) {
-            document.getElementById('message').innerText = "위치 권한을 허용해주세요.\n스마트폰의 GPS를 켜고 브라우저 설정에서 위치를 허용해야 합니다.";
-            document.getElementById('message').style.color = "#f44336";
-            document.getElementById('submitBtn').disabled = false;
-          },
-          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-      } else {
-        document.getElementById('message').innerText = "이 브라우저에서는 위치 기능을 지원하지 않습니다.";
-        document.getElementById('message').style.color = "#f44336";
-        document.getElementById('submitBtn').disabled = false;
-      }
-    }
-
-    // 서버로 데이터 전송
+    // 서버 전송 함수
     function sendAttendanceToServer(name, deviceId) {
       localStorage.setItem('myAttendanceName', name);
 
-      // config.js 파일의 CONFIG.SCRIPT_URL을 사용
       const urlParams = `?name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(deviceId)}&deviceInfo=${encodeURIComponent(deviceInfo)}`;
       
       fetch(CONFIG.SCRIPT_URL + urlParams)
@@ -143,7 +190,7 @@
         .catch(error => {
           document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
           document.getElementById('message').style.color = "#f44336";
-          document.getElementById('submitBtn').disabled = false;
+          document.getElementById('mainSubmitBtn').disabled = false;
         });
     }
   </script>
