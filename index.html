@@ -67,7 +67,7 @@
     window.onload = function() {
       // config.js의 설정값을 화면에 표시
       if(typeof CONFIG !== 'undefined') {
-        document.getElementById('locationDisplay').innerText = `📍 출석 위치: ${CONFIG.TARGET_NAME} (반경 ${CONFIG.MAX_DISTANCE}m)`;
+        document.getElementById('locationDisplay').innerText = `📍 출석 위치: ${CONFIG.TARGET_PLACE} (반경 ${CONFIG.MAX_DISTANCE}m)`;
       }
 
       const savedName = localStorage.getItem('myAttendanceName');
