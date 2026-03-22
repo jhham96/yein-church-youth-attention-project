@@ -24,16 +24,17 @@ const CONFIG = {
 const PATCH_NOTES = [
   {
     version: "v1.3",
-    date: "2025-07-01",
+    date: "2025-03-22",
     changes: [
       "출석 가능 시간 제한 추가 (9:00까지)",
       "GPS 실패 시 재시도 버튼 추가",
       "오류 메시지 상세화",
+      "패치노트 기능 추가",
     ],
   },
   {
     version: "v1.2",
-    date: "2025-06-01",
+    date: "2025-03-16",
     changes: [
       "기기 식별 방식 변경 (fingerprint → localStorage UUID)",
       "대리출석 방지 로직 개선",
@@ -41,7 +42,7 @@ const PATCH_NOTES = [
   },
   {
     version: "v1.1",
-    date: "2025-05-01",
+    date: "2026-03-08",
     changes: ["이름 확인 모달 추가", "출석 위치 화면 표시"],
   },
 ];
