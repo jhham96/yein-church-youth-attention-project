@@ -1,53 +1,127 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>출석 체크</title>
   <script src="config.js"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; padding: 50px 20px; margin: 0; }
-    input { padding: 10px; font-size: 16px; margin-bottom: 15px; width: 80%; max-width: 300px; box-sizing: border-box; }
-    button { padding: 10px 20px; font-size: 16px; border: none; border-radius: 5px; cursor: pointer; }
-    
-    .btn-submit { background-color: #4CAF50; color: white; width: 80%; max-width: 300px; }
-    .btn-submit:disabled { background-color: #9E9E9E; cursor: not-allowed; }
-    
-    #message { margin-top: 20px; font-weight: bold; color: #333; line-height: 1.5; white-space: pre-line; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 50px 20px;
+      margin: 0;
+    }
+
+    input {
+      padding: 10px;
+      font-size: 16px;
+      margin-bottom: 15px;
+      width: 80%;
+      max-width: 300px;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      background-color: #4CAF50;
+      color: white;
+      width: 80%;
+      max-width: 300px;
+    }
+
+    .btn-submit:disabled {
+      background-color: #9E9E9E;
+      cursor: not-allowed;
+    }
+
+    #message {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #333;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
 
     /* 💡 커스텀 모달(팝업창) 디자인 & 애니메이션 */
     #modalOverlay {
-      visibility: hidden; opacity: 0; 
-      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.5); z-index: 1000; 
-      display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.3s ease, visibility 0.3s ease; /* 부드러운 페이드인 */
+      visibility: hidden;
+      opacity: 0;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+      /* 부드러운 페이드인 */
     }
-    #modalOverlay.show { visibility: visible; opacity: 1; }
-    
-    #confirmBox {
-      background: white; padding: 30px 20px; border-radius: 12px; width: 80%; max-width: 300px;
-      transform: translateY(-20px) scale(0.95); transition: transform 0.3s ease; /* 톡 튀어나오는 효과 */
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    #modalOverlay.show #confirmBox { transform: translateY(0) scale(1); }
 
-    .btn-group { margin-top: 25px; display: flex; gap: 10px; justify-content: center; }
-    .btn-cancel { background-color: #e0e0e0; color: #333; flex: 1; }
-    .btn-confirm { background-color: #2196F3; color: white; flex: 1; }
+    #modalOverlay.show {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    #confirmBox {
+      background: white;
+      padding: 30px 20px;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 300px;
+      transform: translateY(-20px) scale(0.95);
+      transition: transform 0.3s ease;
+      /* 톡 튀어나오는 효과 */
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    #modalOverlay.show #confirmBox {
+      transform: translateY(0) scale(1);
+    }
+
+    .btn-group {
+      margin-top: 25px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .btn-cancel {
+      background-color: #e0e0e0;
+      color: #333;
+      flex: 1;
+    }
+
+    .btn-confirm {
+      background-color: #2196F3;
+      color: white;
+      flex: 1;
+    }
   </style>
 </head>
+
 <body>
   <h2>출석 체크</h2>
-  
+
   <p id="locationDisplay" style="color: #666; font-size: 14px; margin-bottom: 20px;"></p>
-  
+
   <div id="formSection">
     <input type="text" id="nameInput" placeholder="이름을 입력하세요">
     <br>
     <button class="btn-submit" onclick="showConfirmModal()" id="mainSubmitBtn">출석</button>
   </div>
-  
+
   <div id="message"></div>
 
   <div id="modalOverlay">
@@ -64,7 +138,7 @@
   <script>
     const deviceInfo = navigator.userAgent;
 
-    window.onload = function() {
+    window.onload = function () {
       // config.js의 설정값을 화면에 표시
       if (typeof CONFIG !== 'undefined' && typeof TARGET_PLACE !== 'undefined') {
         document.getElementById('locationDisplay').innerText = `📍 출석 위치: ${TARGET_PLACE} (반경 ${CONFIG.MAX_DISTANCE}m)`;
@@ -97,7 +171,7 @@
     // 모달창에서 '네, 맞습니다'를 누르면 실행되는 실제 출석 로직
     async function proceedAttendance() {
       closeModal(); // 팝업 닫기
-      
+
       const name = document.getElementById('nameInput').value.trim();
       const mainBtn = document.getElementById('mainSubmitBtn');
       const msgBox = document.getElementById('message');
@@ -106,11 +180,11 @@
       msgBox.style.color = "#333";
       mainBtn.disabled = true;
 
-      const deviceId = await generateDeviceFingerprint();
+      const deviceId = getOrCreateDeviceId();
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          function(position) {
+          function (position) {
             const currentLat = position.coords.latitude;
             const currentLon = position.coords.longitude;
             const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
@@ -124,7 +198,7 @@
               mainBtn.disabled = false;
             }
           },
-          function(error) {
+          function (error) {
             msgBox.innerText = "위치 권한을 허용해주세요.\n스마트폰의 GPS를 켜고 브라우저 설정에서 위치를 허용해야 합니다.";
             msgBox.style.color = "#f44336";
             mainBtn.disabled = false;
@@ -138,29 +212,25 @@
       }
     }
 
-    // 기기 지문 생성 함수
-    async function generateDeviceFingerprint() {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl');
-      const renderer = gl ? gl.getParameter(gl.RENDERER) : ''; 
-      
-      const rawData = navigator.userAgent + screen.width + 'x' + screen.height + navigator.language + navigator.hardwareConcurrency + renderer;
-      const msgBuffer = new TextEncoder().encode(rawData);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      return 'FP_' + hashHex.substring(0, 15);
+    // 기존 함수 전체를 아래로 교체
+    function getOrCreateDeviceId() {
+      let id = localStorage.getItem('attendanceDeviceId');
+      if (!id) {
+        id = 'LS_' + crypto.randomUUID();
+        localStorage.setItem('attendanceDeviceId', id);
+      }
+      return id;
     }
 
     // 거리 계산 함수
     function getDistance(lat1, lon1, lat2, lon2) {
       const R = 6371e3;
-      const p1 = lat1 * Math.PI/180;
-      const p2 = lat2 * Math.PI/180;
-      const dp = (lat2-lat1) * Math.PI/180;
-      const dl = (lon2-lon1) * Math.PI/180;
-      const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      const p1 = lat1 * Math.PI / 180;
+      const p2 = lat2 * Math.PI / 180;
+      const dp = (lat2 - lat1) * Math.PI / 180;
+      const dl = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
 
@@ -169,18 +239,18 @@
       localStorage.setItem('myAttendanceName', name);
 
       const urlParams = `?name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(deviceId)}&deviceInfo=${encodeURIComponent(deviceInfo)}`;
-      
+
       fetch(CONFIG.SCRIPT_URL + urlParams)
         .then(response => response.json())
         .then(data => {
           document.getElementById('formSection').style.display = 'none';
-          if(data.status === "success") {
+          if (data.status === "success") {
             document.getElementById('message').innerText = name + "님, 출석이 완료되었습니다!";
             document.getElementById('message').style.color = "#4CAF50";
-          } else if(data.status === "duplicate") {
+          } else if (data.status === "duplicate") {
             document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다.";
             document.getElementById('message').style.color = "#ff9800";
-          } else if(data.status === "proxy") {
+          } else if (data.status === "proxy") {
             document.getElementById('message').innerText = "해당 기기로는 이미 다른 사람의 출석이 완료되었습니다.\n(대리출석 방지)";
             document.getElementById('message').style.color = "#f44336";
           } else {
@@ -195,4 +265,5 @@
     }
   </script>
 </body>
+
 </html>
