@@ -209,13 +209,28 @@
             const currentLon = position.coords.longitude;
             const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
 
+            // 변경
             if (distance <= CONFIG.MAX_DISTANCE) {
               msgBox.innerText = "확인 완료! 기록 중입니다...";
               sendAttendanceToServer(name, deviceId);
             } else {
-              msgBox.innerText = `모임 장소에서 너무 멉니다.\n(현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)`;
-              msgBox.style.color = "#f44336";
-              mainBtn.disabled = false;
+              msgBox.innerHTML = `
+                <span style="color:#f44336;">
+                  📍 모임 장소에서 너무 멉니다.<br>
+                  (현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)
+                </span>
+                <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
+                  <strong>💡 이렇게 해보세요</strong><br>
+                  1. 휴대폰을 <strong>8자 모양으로 천천히</strong> 돌린 후 재시도<br>
+                  2. 와이파이를 끄고 <strong>모바일 데이터</strong>로 전환 후 재시도<br>
+                  3. 위 방법으로도 안 되면 <strong>담당자에게 문의</strong>
+                </div>
+                <br>
+                <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
+                  🔄 다시 시도
+                </button>
+              `;
+              mainBtn.disabled = true;
             }
           },
           function (error) {
