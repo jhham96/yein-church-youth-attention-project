@@ -174,6 +174,27 @@
 
   <p id="locationDisplay" style="color: #666; font-size: 14px; margin-bottom: 20px;"></p>
 
+  <!-- 위치 권한 거부 배너 -->
+  <div id="permissionBanner" style="
+    display:none; margin: 0 auto 20px; width:80%; max-width:320px;
+    background:#fff3e0; border-radius:10px; padding:14px 16px;
+    font-size:14px; color:#555; text-align:left; line-height:1.9;">
+    ⚠️ <strong>위치 권한이 차단되어 있습니다.</strong><br>
+    출석 버튼을 사용하려면 아래 방법으로 권한을 허용해주세요.<br><br>
+    <b>📱 아이폰</b><br>
+    설정 → 사파리 → 위치 → <strong>허용</strong> 선택<br><br>
+    <b>🤖 안드로이드</b><br>
+    주소창 왼쪽 🔒 아이콘 탭 → 위치 → <strong>허용</strong> 선택<br><br>
+    변경 후 페이지를 <strong>새로고침</strong>해주세요.
+    <div style="text-align:center; margin-top:12px;">
+      <button onclick="location.reload()" style="
+        background:#ff9800; color:white; border:none; border-radius:6px;
+        padding:8px 22px; font-size:14px; cursor:pointer;">
+        🔄 새로고침
+      </button>
+    </div>
+  </div>
+
   <div id="formSection">
     <input type="text" id="nameInput" placeholder="이름을 입력하세요">
     <br>
@@ -257,7 +278,34 @@
       if (savedName) {
         document.getElementById('nameInput').value = savedName;
       }
+
+      // Permissions API로 위치 권한 상태 사전 감지
+      if (navigator.permissions) {
+        navigator.permissions.query({ name: 'geolocation' }).then(result => {
+          if (result.state === 'denied') {
+            showPermissionDeniedBanner();
+          }
+          // 설정에서 권한 변경 시 자동 반영
+          result.onchange = () => {
+            if (result.state === 'denied') {
+              showPermissionDeniedBanner();
+            } else {
+              hidePermissionDeniedBanner();
+            }
+          };
+        });
+      }
     };
+
+    function showPermissionDeniedBanner() {
+      document.getElementById('mainSubmitBtn').disabled = true;
+      document.getElementById('permissionBanner').style.display = 'block';
+    }
+
+    function hidePermissionDeniedBanner() {
+      document.getElementById('mainSubmitBtn').disabled = false;
+      document.getElementById('permissionBanner').style.display = 'none';
+    }
 
     // ──────────────────────────────────────────
     // 출석 확인 모달
@@ -332,13 +380,27 @@
             finishLoading(false);
             var reason = "";
             if (error.code === 1) {
-              reason = "위치 권한이 거부되었습니다.\n브라우저 설정에서 위치 권한을 허용해주세요.";
+              document.getElementById('message').innerHTML = `
+                <span style="color:#f44336;">위치 권한이 거부되어 있습니다.</span>
+                <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
+                  <strong>📱 권한 다시 허용하는 방법</strong><br>
+                  <b>아이폰</b><br>
+                  설정 → 사파리 → 위치 → <strong>허용</strong><br>
+                  <b>안드로이드</b><br>
+                  주소창 왼쪽 🔒 아이콘 → 위치 → <strong>허용</strong><br><br>
+                  변경 후 아래 버튼을 눌러주세요.
+                </div>
+                <br>
+                <button class="btn-submit" onclick="location.reload()" style="width:auto; padding:10px 25px;">
+                  🔄 새로고침 후 다시 시도
+                </button>`;
+              return;
             } else if (error.code === 2) {
               reason = "GPS 신호를 찾을 수 없습니다.\n잠시 후 다시 시도해주세요.";
             } else if (error.code === 3) {
               reason = "위치 확인 시간이 초과되었습니다.\n잠시 후 다시 시도해주세요.";
             }
-            msgBox.innerHTML = `
+            document.getElementById('message').innerHTML = `
               <span style="color:#f44336;">${reason}</span><br><br>
               <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
                 🔄 다시 시도
