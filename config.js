@@ -19,3 +19,29 @@ const CONFIG = {
   TARGET_LON: lat_lon_group[TARGET_PLACE].lon, // 경도
   MAX_DISTANCE: 50, // 허용 거리 (미터)
 };
+
+// config.js 하단에 추가
+const PATCH_NOTES = [
+  {
+    version: "v1.3",
+    date: "2025-07-01",
+    changes: [
+      "출석 가능 시간 제한 추가 (9:00까지)",
+      "GPS 실패 시 재시도 버튼 추가",
+      "오류 메시지 상세화",
+    ],
+  },
+  {
+    version: "v1.2",
+    date: "2025-06-01",
+    changes: [
+      "기기 식별 방식 변경 (fingerprint → localStorage UUID)",
+      "대리출석 방지 로직 개선",
+    ],
+  },
+  {
+    version: "v1.1",
+    date: "2025-05-01",
+    changes: ["이름 확인 모달 추가", "출석 위치 화면 표시"],
+  },
+];
