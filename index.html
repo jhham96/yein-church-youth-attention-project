@@ -152,6 +152,13 @@
 
     // --- 💡 새로 추가된 모달 제어 함수들 ---
     function showConfirmModal() {
+      // ✅ 클라이언트 시간 체크 (UI 편의용, 보안용 아님)
+      var now = new Date();
+      if (now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() >= 1)) {
+        alert("출석 가능 시간이 종료되었습니다.\n(출석은 9:00까지 가능합니다)");
+        return;
+      }
+
       const name = document.getElementById('nameInput').value.trim();
       if (!name) {
         alert("이름을 입력해주세요.");
