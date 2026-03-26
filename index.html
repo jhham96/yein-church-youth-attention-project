@@ -198,6 +198,9 @@
   <div id="formSection">
     <input type="text" id="nameInput" placeholder="이름을 입력하세요">
     <br>
+    <input type="tel" id="phoneSuffixInput" placeholder="휴대폰 뒤 4자리를 입력하세요" inputmode="numeric" maxlength="4"
+      pattern="[0-9]{4}">
+    <br>
     <button class="btn-submit" onclick="showConfirmModal()" id="mainSubmitBtn">출석</button>
   </div>
 
@@ -279,6 +282,11 @@
         document.getElementById('nameInput').value = savedName;
       }
 
+      const savedPhoneSuffix = localStorage.getItem('myPhoneSuffix');
+      if (savedPhoneSuffix) {
+        document.getElementById('phoneSuffixInput').value = savedPhoneSuffix;
+      }
+
       // Permissions API로 위치 권한 상태 사전 감지
       if (navigator.permissions) {
         navigator.permissions.query({ name: 'geolocation' }).then(result => {
@@ -295,7 +303,15 @@
           };
         });
       }
+
+      document.getElementById('phoneSuffixInput').addEventListener('input', function (e) {
+        e.target.value = sanitizePhoneSuffix(e.target.value);
+      });
     };
+
+    function sanitizePhoneSuffix(value) {
+      return value.replace(/\D/g, '').slice(0, 4);
+    }
 
     function showPermissionDeniedBanner() {
       document.getElementById('mainSubmitBtn').disabled = true;
@@ -312,12 +328,27 @@
     // ──────────────────────────────────────────
     function showConfirmModal() {
       const name = document.getElementById('nameInput').value.trim();
+      const phoneSuffix = sanitizePhoneSuffix(
+        document.getElementById('phoneSuffixInput').value.trim()
+      );
+
+      document.getElementById('phoneSuffixInput').value = phoneSuffix;
+
       if (!name) {
         alert("이름을 입력해주세요.");
         return;
       }
+
+      if (phoneSuffix.length !== 4) {
+        alert("휴대폰 뒤 4자리를 정확히 입력해주세요.");
+        return;
+      }
+
       document.getElementById('confirmMessage').innerHTML =
-        `<strong>${name}</strong> 님으로<br>출석하시겠습니까?`;
+        `<strong>${name}</strong> 님으로<br>` +
+        `휴대폰 뒤 4자리 <strong>${phoneSuffix}</strong>로<br>` +
+        `출석하시겠습니까?`;
+
       document.getElementById('modalOverlay').classList.add('show');
     }
 
@@ -332,6 +363,10 @@
       closeModal();
 
       const name = document.getElementById('nameInput').value.trim();
+      const phoneSuffix = sanitizePhoneSuffix(
+        document.getElementById('phoneSuffixInput').value.trim()
+      );
+
       const mainBtn = document.getElementById('mainSubmitBtn');
       const msgBox = document.getElementById('message');
 
@@ -350,7 +385,7 @@
             const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
 
             if (distance <= CONFIG.MAX_DISTANCE) {
-              sendAttendanceToServer(name, deviceId);
+              sendAttendanceToServer(name, phoneSuffix, deviceId);
             } else {
               finishLoading(false);
               msgBox.innerHTML = `
@@ -468,14 +503,16 @@
     // ──────────────────────────────────────────
     // 서버 전송
     // ──────────────────────────────────────────
-    async function sendAttendanceToServer(name, deviceId) {
+    async function sendAttendanceToServer(name, phoneSuffix, deviceId) {
       try {
         localStorage.setItem('myAttendanceName', name);
+        localStorage.setItem('myPhoneSuffix', phoneSuffix);
 
         const ipAddress = await getPublicIP();
 
         const urlParams =
           `?name=${encodeURIComponent(name)}` +
+          `&phoneSuffix=${encodeURIComponent(phoneSuffix)}` +
           `&deviceId=${encodeURIComponent(deviceId)}` +
           `&deviceInfo=${encodeURIComponent(deviceInfo)}` +
           `&ipAddress=${encodeURIComponent(ipAddress)}`;
@@ -501,7 +538,8 @@
 
         } else if (data.status === "duplicate") {
           finishLoading(false);
-          document.getElementById('message').innerText = `${name}님, 오늘은 이미 출석하셨습니다.`;
+          document.getElementById('message').innerText =
+            `${name}님, 오늘은 이미 출석하셨습니다.`;
           document.getElementById('message').style.color = "#ff9800";
 
         } else if (data.status === "proxy") {
@@ -515,7 +553,8 @@
         }
       } catch (error) {
         finishLoading(false);
-        document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
+        document.getElementById('message').innerText =
+          "오류가 발생했습니다: " + error.message;
         document.getElementById('message').style.color = "#f44336";
         document.getElementById('mainSubmitBtn').disabled = false;
       }
