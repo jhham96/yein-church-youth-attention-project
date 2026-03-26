@@ -13,7 +13,7 @@ const TARGET_PLACE = "우리집";
 const CONFIG = {
   // 1. 앱스 스크립트 웹 앱 URL
   SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbzt6SUXNXvZkmZJDPJ0mBEd_VwBQIpO8HaI-Ml-OMqtvZRmiAQnj2AqP_sZiUWMSFLCMw/exec",
+    "https://script.google.com/macros/s/AKfycbxE5D9xkCBjJQgJlE8WQc2_10l2CsZmdK7Mik_fyX0AYbhLvjJrXOeTFvdHNSK5gU4yJg/exec",
 
   // 2. 모임 장소 설정 (위도, 경도, 허용 반경)
   TARGET_LAT: lat_lon_group[TARGET_PLACE].lat, // 위도
