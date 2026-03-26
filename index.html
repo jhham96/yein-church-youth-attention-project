@@ -311,6 +311,12 @@
     // 출석 확인 모달
     // ──────────────────────────────────────────
     function showConfirmModal() {
+      // 클라이언트 시간 체크 (UI 편의용, 보안용 아님)
+      var now = new Date();
+      if (now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() >= 1)) {
+        alert("출석 가능 시간이 종료되었습니다.\n(출석은 9:00까지 가능합니다)");
+        return;
+      }
       const name = document.getElementById('nameInput').value.trim();
       if (!name) {
         alert("이름을 입력해주세요.");
@@ -438,18 +444,6 @@
       return id;
     }
 
-    async function getPublicIP() {
-      try {
-        const res = await fetch("https://api.ipify.org?format=json");
-        const data = await res.json();
-        return data.ip || "";
-      } catch (e) {
-        console.warn("IP 조회 실패:", e);
-        return "";
-      }
-    }
-
-
     // ──────────────────────────────────────────
     // 거리 계산
     // ──────────────────────────────────────────
@@ -460,7 +454,7 @@
       const dp = (lat2 - lat1) * Math.PI / 180;
       const dl = (lon2 - lon1) * Math.PI / 180;
       const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
-        Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+                Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     }
@@ -468,57 +462,36 @@
     // ──────────────────────────────────────────
     // 서버 전송
     // ──────────────────────────────────────────
-    async function sendAttendanceToServer(name, deviceId) {
-      try {
-        localStorage.setItem('myAttendanceName', name);
+    function sendAttendanceToServer(name, deviceId) {
+      localStorage.setItem('myAttendanceName', name);
+      const urlParams = `?name=${encodeURIComponent(name)}&deviceId=${encodeURIComponent(deviceId)}&deviceInfo=${encodeURIComponent(deviceInfo)}`;
 
-        const ipAddress = await getPublicIP();
-
-        const urlParams =
-          `?name=${encodeURIComponent(name)}` +
-          `&deviceId=${encodeURIComponent(deviceId)}` +
-          `&deviceInfo=${encodeURIComponent(deviceInfo)}` +
-          `&ipAddress=${encodeURIComponent(ipAddress)}`;
-
-        const response = await fetch(CONFIG.SCRIPT_URL + urlParams);
-        const data = await response.json();
-
-        document.getElementById('formSection').style.display = 'none';
-
-        if (data.status === "success") {
-          finishLoading(true);
-
-          let successMessage = `${name}님, 출석이 완료되었습니다!`;
-          if (data.attendanceType) {
-            successMessage += `\n(${data.attendanceType})`;
+      fetch(CONFIG.SCRIPT_URL + urlParams)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('formSection').style.display = 'none';
+          if (data.status === "success") {
+            finishLoading(true);
+            document.getElementById('message').innerText = name + "님, 출석이 완료되었습니다!";
+            document.getElementById('message').style.color = "#4CAF50";
+          } else if (data.status === "duplicate") {
+            finishLoading(false);
+            document.getElementById('message').innerText = name + "님, 오늘은 이미 출석하셨습니다.";
+            document.getElementById('message').style.color = "#ff9800";
+          } else if (data.status === "proxy") {
+            finishLoading(false);
+            document.getElementById('message').innerText = "해당 기기로는 이미 다른 사람의 출석이 완료되었습니다.\n(대리출석 방지)";
+            document.getElementById('message').style.color = "#f44336";
+          } else {
+            throw new Error(data.message);
           }
-          if (data.time) {
-            successMessage += `\n출석 시각: ${data.time}`;
-          }
-
-          document.getElementById('message').innerText = successMessage;
-          document.getElementById('message').style.color = "#4CAF50";
-
-        } else if (data.status === "duplicate") {
+        })
+        .catch(error => {
           finishLoading(false);
-          document.getElementById('message').innerText = `${name}님, 오늘은 이미 출석하셨습니다.`;
-          document.getElementById('message').style.color = "#ff9800";
-
-        } else if (data.status === "proxy") {
-          finishLoading(false);
-          document.getElementById('message').innerText =
-            "해당 기기로는 이미 다른 사람의 출석이 완료되었습니다.\n(대리출석 방지)";
+          document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
           document.getElementById('message').style.color = "#f44336";
-
-        } else {
-          throw new Error(data.message || "알 수 없는 오류");
-        }
-      } catch (error) {
-        finishLoading(false);
-        document.getElementById('message').innerText = "오류가 발생했습니다: " + error.message;
-        document.getElementById('message').style.color = "#f44336";
-        document.getElementById('mainSubmitBtn').disabled = false;
-      }
+          document.getElementById('mainSubmitBtn').disabled = false;
+        });
     }
 
     // ──────────────────────────────────────────
@@ -559,10 +532,10 @@
     // 로딩바
     // ──────────────────────────────────────────
     const LOADING_STEPS = [
-      { main: "GPS 신호 탐색 중...", sub: "위치 권한을 확인하고 있습니다", pct: 20 },
-      { main: "위치 확인 중...", sub: "현재 좌표를 가져오는 중입니다", pct: 45 },
-      { main: "거리 계산 중...", sub: "모임 장소와의 거리를 계산합니다", pct: 70 },
-      { main: "서버에 기록 중...", sub: "출석 정보를 전송하고 있습니다", pct: 90 },
+      { main: "GPS 신호 탐색 중...",  sub: "위치 권한을 확인하고 있습니다",    pct: 20 },
+      { main: "위치 확인 중...",      sub: "현재 좌표를 가져오는 중입니다",     pct: 45 },
+      { main: "거리 계산 중...",      sub: "모임 장소와의 거리를 계산합니다",   pct: 70 },
+      { main: "서버에 기록 중...",    sub: "출석 정보를 전송하고 있습니다",     pct: 90 },
     ];
 
     let loadingTimer = null;
