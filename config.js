@@ -13,7 +13,7 @@ const TARGET_PLACE = "우리집";
 const CONFIG = {
   // 1. 앱스 스크립트 웹 앱 URL
   SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbzAGWVJAfKM0HX0gZnhpWZW-eKr0hrBGxN3NAcLwM1FHrM1nibNDWZ-xx_Y4IuHJAo8vg/exec",
+    "https://script.google.com/macros/s/AKfycbwpoPC7r69Oegf59skseecYgsAR2mJhdSOfFWl54xmojRklDKCcq5fVsNSZeAJs-6t2KA/exec",
 
   // 2. 모임 장소 설정 (위도, 경도, 허용 반경)
   TARGET_LAT: lat_lon_group[TARGET_PLACE].lat, // 위도
@@ -23,6 +23,15 @@ const CONFIG = {
 
 // config.js 하단에 추가
 const PATCH_NOTES = [
+  {
+    version: "v1.4",
+    date: "2026-03-26",
+    changes: [
+      "9시 이후 출석 시 서버에서 구분되도록 변경",
+      "IP정보 같이 인계되도록 수정",
+      "일요일에만 출석 가능하도록 수정",
+    ],
+  },
   {
     version: "v1.3",
     date: "2026-03-22",
