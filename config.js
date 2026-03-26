@@ -8,7 +8,7 @@ const lat_lon_group = {
 };
 
 // 💡 여기서 모임 장소 이름만 바꿔주면 됩니다!
-const TARGET_PLACE = "우리집";
+const TARGET_PLACE = "예인교회";
 
 const CONFIG = {
   // 1. 앱스 스크립트 웹 앱 URL
