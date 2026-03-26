@@ -24,6 +24,14 @@ const CONFIG = {
 // config.js 하단에 추가
 const PATCH_NOTES = [
   {
+    version: "v1.4",
+    date: "2026-03-26",
+    changes: [
+      "9시 이후 출석 시 서버에서 구분되도록 변경",
+      "IP정보 같이 인계되도록 수정",
+    ],
+  },
+  {
     version: "v1.3",
     date: "2026-03-22",
     changes: [
