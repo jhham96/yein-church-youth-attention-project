@@ -526,9 +526,6 @@
           finishLoading(true);
 
           let successMessage = `${name}님, 출석이 완료되었습니다!`;
-          if (data.attendanceType) {
-            successMessage += `\n(${data.attendanceType})`;
-          }
           if (data.time) {
             successMessage += `\n출석 시각: ${data.time}`;
           }
