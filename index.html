@@ -378,70 +378,89 @@
       const deviceId = getOrCreateDeviceId();
 
       if (navigator.geolocation) {
+        // 1차 시도: 저정확도 (빠름, 아이폰 실내 대응)
         navigator.geolocation.getCurrentPosition(
           function (position) {
-            const currentLat = position.coords.latitude;
-            const currentLon = position.coords.longitude;
-            const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
-
-            if (distance <= CONFIG.MAX_DISTANCE) {
-              sendAttendanceToServer(name, phoneSuffix, deviceId);
-            } else {
-              finishLoading(false);
-              msgBox.innerHTML = `
-                <span style="color:#f44336;">
-                  📍 모임 장소에서 너무 멉니다.<br>
-                  (현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)
-                </span>
-                <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
-                  <strong>💡 이렇게 해보세요</strong><br>
-                  1. 휴대폰을 <strong>8자 모양으로 천천히</strong> 돌린 후 재시도<br>
-                  2. 와이파이를 끄고 <strong>모바일 데이터</strong>로 전환 후 재시도<br>
-                  3. 위 방법으로도 안 되면 <strong>담당자에게 문의</strong>
-                </div>
-                <br>
-                <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
-                  🔄 다시 시도
-                </button>`;
-            }
+            handlePosition(position, name, phoneSuffix, deviceId);
           },
-          function (error) {
-            finishLoading(false);
-            var reason = "";
-            if (error.code === 1) {
-              document.getElementById('message').innerHTML = `
-                <span style="color:#f44336;">위치 권한이 거부되어 있습니다.</span>
-                <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
-                  <strong>📱 권한 다시 허용하는 방법</strong><br>
-                  <b>아이폰</b><br>
-                  설정 → 사파리 → 위치 → <strong>허용</strong><br>
-                  <b>안드로이드</b><br>
-                  주소창 왼쪽 🔒 아이콘 → 위치 → <strong>허용</strong><br><br>
-                  변경 후 아래 버튼을 눌러주세요.
-                </div>
-                <br>
-                <button class="btn-submit" onclick="location.reload()" style="width:auto; padding:10px 25px;">
-                  🔄 새로고침 후 다시 시도
-                </button>`;
-              return;
-            } else if (error.code === 2) {
-              reason = "GPS 신호를 찾을 수 없습니다.\n잠시 후 다시 시도해주세요.";
-            } else if (error.code === 3) {
-              reason = "위치 확인 시간이 초과되었습니다.\n잠시 후 다시 시도해주세요.";
-            }
-            document.getElementById('message').innerHTML = `
-              <span style="color:#f44336;">${reason}</span><br><br>
-              <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
-                🔄 다시 시도
-              </button>`;
+          function () {
+            // 1차 실패 → 2차 시도: 고정확도
+            navigator.geolocation.getCurrentPosition(
+              function (position) {
+                handlePosition(position, name, phoneSuffix, deviceId);
+              },
+              function (error) {
+                finishLoading(false);
+                if (error.code === 1) {
+                  document.getElementById('message').innerHTML = `
+                    <span style="color:#f44336;">위치 권한이 거부되어 있습니다.</span>
+                    <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
+                      <strong>📱 권한 다시 허용하는 방법</strong><br>
+                      <b>아이폰</b><br>
+                      설정 → 개인 정보 보호 → 위치 서비스 → <strong>켜기</strong><br>
+                      설정 → 사파리 → 위치 → <strong>허용</strong><br>
+                      <b>안드로이드</b><br>
+                      주소창 왼쪽 🔒 아이콘 → 위치 → <strong>허용</strong><br><br>
+                      변경 후 아래 버튼을 눌러주세요.
+                    </div>
+                    <br>
+                    <button class="btn-submit" onclick="location.reload()" style="width:auto; padding:10px 25px;">
+                      🔄 새로고침 후 다시 시도
+                    </button>`;
+                  return;
+                }
+                var reason = "";
+                if (error.code === 2) {
+                  reason = "GPS 신호를 찾을 수 없습니다.\n아이폰의 경우: 설정 → 개인 정보 보호 → 위치 서비스가 켜져 있는지 확인해주세요.";
+                } else if (error.code === 3) {
+                  reason = "위치 확인 시간이 초과되었습니다.\n잠시 후 다시 시도해주세요.";
+                }
+                document.getElementById('message').innerHTML = `
+                  <span style="color:#f44336;">${reason}</span><br><br>
+                  <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
+                    🔄 다시 시도
+                  </button>`;
+              },
+              { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+            );
           },
-          { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 }
         );
       } else {
         finishLoading(false);
         msgBox.innerText = "이 브라우저에서는 위치 기능을 지원하지 않습니다.";
         msgBox.style.color = "#f44336";
         mainBtn.disabled = false;
+      }
+    }
+
+    // ──────────────────────────────────────────
+    // 위치 처리 (1차/2차 공통)
+    // ──────────────────────────────────────────
+    function handlePosition(position, name, phoneSuffix, deviceId) {
+      const currentLat = position.coords.latitude;
+      const currentLon = position.coords.longitude;
+      const distance = getDistance(currentLat, currentLon, CONFIG.TARGET_LAT, CONFIG.TARGET_LON);
+
+      if (distance <= CONFIG.MAX_DISTANCE) {
+        sendAttendanceToServer(name, phoneSuffix, deviceId);
+      } else {
+        finishLoading(false);
+        document.getElementById('message').innerHTML = `
+          <span style="color:#f44336;">
+            📍 모임 장소에서 너무 멉니다.<br>
+            (현재 거리: 약 ${Math.round(distance)}m / 허용 반경: ${CONFIG.MAX_DISTANCE}m)
+          </span>
+          <div style="margin-top:15px; background:#fff3e0; border-radius:8px; padding:12px 15px; font-size:14px; color:#555; text-align:left; line-height:2;">
+            <strong>💡 이렇게 해보세요</strong><br>
+            1. 휴대폰을 <strong>8자 모양으로 천천히</strong> 돌린 후 재시도<br>
+            2. 와이파이를 끄고 <strong>모바일 데이터</strong>로 전환 후 재시도<br>
+            3. 위 방법으로도 안 되면 <strong>담당자에게 문의</strong>
+          </div>
+          <br>
+          <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
+            🔄 다시 시도
+          </button>`;
       }
     }
 
