@@ -381,13 +381,13 @@
         // 1차 시도: 저정확도 (빠름, 아이폰 실내 대응)
         navigator.geolocation.getCurrentPosition(
           function (position) {
-            handlePosition(position, name, phoneSuffix, deviceId);
+            handlePosition(position, name, phoneSuffix, deviceId, false); // ✅ false 추가
           },
           function () {
             // 1차 실패 → 2차 시도: 고정확도
             navigator.geolocation.getCurrentPosition(
               function (position) {
-                handlePosition(position, name, phoneSuffix, deviceId);
+                handlePosition(position, name, phoneSuffix, deviceId, true); // ✅ true 추가
               },
               function (error) {
                 finishLoading(false);
@@ -461,7 +461,12 @@
             <button class="btn-submit" onclick="retryGPS()" style="width:auto; padding:10px 25px;">
               🔄 다시 시도
             </button>
-            <button onclick="forceAttendance('${name}', '${phoneSuffix}', '${deviceId}', ${distanceRounded})"
+            <button
+              data-name="${name}"
+              data-phone="${phoneSuffix}"
+              data-device="${deviceId}"
+              data-distance="${distanceRounded}"
+              onclick="forceAttendance(this)"
               style="background:none; border:none; color:#aaa; font-size:13px; cursor:pointer; text-decoration:underline;">
               그래도 출석하기 (거리 기록됨)
             </button>
@@ -472,13 +477,17 @@
     // ──────────────────────────────────────────
     // 강제 출석 (2차 시도, 거리 기록)
     // ──────────────────────────────────────────
-    function forceAttendance(name, phoneSuffix, deviceId, distance) {
+    function forceAttendance(btn) {
+      const name = btn.dataset.name;
+      const phoneSuffix = btn.dataset.phone;
+      const deviceId = btn.dataset.device;
+      const distance = btn.dataset.distance;
+
       document.getElementById('message').innerHTML = "";
       document.getElementById('mainSubmitBtn').disabled = true;
       startLoading();
       sendAttendanceToServer(name, phoneSuffix, deviceId, distance);
     }
-
 
     // ──────────────────────────────────────────
     // GPS 재시도
