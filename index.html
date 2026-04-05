@@ -547,7 +547,7 @@
     // ──────────────────────────────────────────
     // 서버 전송
     // ──────────────────────────────────────────
-    async function sendAttendanceToServer(name, phoneSuffix, deviceId) {
+    async function sendAttendanceToServer(name, phoneSuffix, deviceId, distance) {
       try {
         localStorage.setItem('myAttendanceName', name);
         localStorage.setItem('myPhoneSuffix', phoneSuffix);
