@@ -13,7 +13,7 @@ const TARGET_PLACE = "예인교회";
 const CONFIG = {
   // 1. 앱스 스크립트 웹 앱 URL
   SCRIPT_URL:
-    "https://script.google.com/macros/s/AKfycbyvyWQj9xi-0WATRGYTNbbqsfAdK0Jt1cA4TXYh0cGLTLGQnqQ3tirkiGw9YwIYho-GEw/exec",
+    "https://script.google.com/macros/s/AKfycbwxJKpG8r8cl2w3ikTHIY-tRnCXuj8xo0y1JQTFZwzlREahqoRPQ_TiquqrZ-PAwW0gsw/exec",
 
   // 2. 모임 장소 설정 (위도, 경도, 허용 반경)
   TARGET_LAT: lat_lon_group[TARGET_PLACE].lat, // 위도
