@@ -480,8 +480,9 @@
         // 정상 범위 → 바로 출석
         sendAttendanceToServer(name, phoneSuffix, deviceId, distanceRounded);
       } else {
-        // 거리 초과 → 경고 모달
-        finishLoading(false);
+        // 거리 초과 → 로딩 먼저 완전히 숨긴 후 경고 모달
+        clearInterval(loadingTimer);
+        document.getElementById('loadingWrap').classList.remove('active');
         showDistanceWarningModal(name, phoneSuffix, deviceId, distanceRounded);
       }
     }
